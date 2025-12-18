@@ -10,6 +10,38 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
+      
+      // --- NEW: PERFORMANCE OPTIMIZATION ---
+      build: {
+        // 1. Minification (Size kam karega)
+        minify: 'terser', 
+        cssCodeSplit: true,
+        rollupOptions: {
+          output: {
+            // 2. Manual Chunking (Bhari libraries ko alag karega)
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                // React core alag
+                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                  return 'react-vendor';
+                }
+                // Firebase alag (agar use ho raha hai)
+                if (id.includes('firebase')) {
+                  return 'firebase-vendor';
+                }
+                // Icons alag
+                if (id.includes('lucide')) {
+                  return 'icons';
+                }
+                // Baaki sab 'vendor' me
+                return 'vendor';
+              }
+            },
+          },
+        },
+      },
+      // -------------------------------------
+
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

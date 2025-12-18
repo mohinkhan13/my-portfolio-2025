@@ -3,7 +3,6 @@ import { useContent } from "../context/ContentContext";
 import {
   FileText,
   Eye,
-  ChevronDown,
   Github,
   Linkedin,
   Mail,
@@ -12,24 +11,23 @@ import {
   Terminal,
   Database,
   Sparkles,
-  Cpu,
-  Wifi,
 } from "lucide-react";
 
 const Hero: React.FC = () => {
   const { content } = useContent();
   const { hero, social } = content;
+  
+  // OPTIMIZATION 1: Use Ref for Mouse Move (No Re-renders)
   const containerRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
 
   // --- STATE ---
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [text, setText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(150);
 
   const roles = [
-    // "Full Stack Developer",
     "Python Developer",
     "Django Developer",
     "Backend Architect",
@@ -41,15 +39,16 @@ const Hero: React.FC = () => {
     mail: Mail,
   };
 
-  // --- MOUSE MOVE ---
+  // --- OPTIMIZED MOUSE MOVE ---
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setMousePosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    }
+    if (!spotlightRef.current || !containerRef.current) return;
+    
+    // Direct DOM manipulation avoids React Render Cycle
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    spotlightRef.current.style.background = `radial-gradient(600px circle at ${x}px ${y}px, rgba(45,212,191,0.10), transparent 40%)`;
   };
 
   // --- TYPEWRITER ---
@@ -73,7 +72,7 @@ const Hero: React.FC = () => {
     };
     const timer = setTimeout(handleType, typingSpeed);
     return () => clearTimeout(timer);
-  }, [text, isDeleting, loopNum, typingSpeed, roles]);
+  }, [text, isDeleting, loopNum, typingSpeed]);
 
   return (
     <section
@@ -84,11 +83,11 @@ const Hero: React.FC = () => {
     >
       {/* 1. BACKGROUND EFFECTS */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+      
+      {/* Optimized Spotlight using Ref */}
       <div
-        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 lg:opacity-100"
-        style={{
-          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(45,212,191,0.10), transparent 40%)`,
-        }}
+        ref={spotlightRef}
+        className="pointer-events-none absolute -inset-px transition duration-300 opacity-100"
       />
 
       <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
@@ -137,8 +136,8 @@ const Hero: React.FC = () => {
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-5 mb-12 justify-center lg:justify-start">
             <a
-              href="/resume.pdf" // File ka path (public folder se)
-              download="Mohinkhan_Resume.pdf" // Download hone par ye naam aayega
+              href="/resume.pdf"
+              download="Mohinkhan_Resume.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="group relative px-8 py-4 bg-accent text-[#0f172a] font-bold rounded-lg overflow-hidden transition-all shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:shadow-[0_0_35px_rgba(45,212,191,0.6)] hover:-translate-y-1"
@@ -195,14 +194,13 @@ const Hero: React.FC = () => {
 
             {/* Main Terminal Box */}
             <div className="relative h-full w-full bg-[#0f172a] rounded-xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden transition-transform duration-500 group-hover:-translate-y-2">
-              {/* 1. Enhanced Header */}
+              {/* Header */}
               <div className="h-10 bg-[#1e293b] border-b border-slate-700 flex items-center px-4 gap-3 select-none">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors shadow-inner"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 transition-colors shadow-inner"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors shadow-inner"></div>
+                  <div className="w-3 h-3 rounded-full bg-red-500/80 shadow-inner"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-inner"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500/80 shadow-inner"></div>
                 </div>
-                {/* Path Breadcrumb */}
                 <div className="flex-1 text-center pr-12 opacity-60 flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
                   <Terminal size={12} className="text-accent" />
                   <span className="text-[11px] font-mono text-slate-300">
@@ -211,18 +209,22 @@ const Hero: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Image Area with Scanlines */}
+              {/* Image Area with LCP Fix */}
               <div className="flex-1 relative overflow-hidden bg-slate-900 group/image">
-                {/* CRT Scanline Overlay (The Tech Vibe) */}
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[size:100%_2px,3px_100%] pointer-events-none opacity-20"></div>
 
+                {/* OPTIMIZATION 2: Eager Loading for LCP */}
                 <img
                   src={hero.imgUrl || "https://via.placeholder.com/400"}
                   alt={hero.name}
+                  loading="eager"
+                  fetchPriority="high"
+                  width="400"
+                  height="400"
+                  decoding="async"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-105 opacity-90 group-hover/image:opacity-100"
                 />
 
-                {/* Bottom Code Overlay */}
                 <div className="absolute bottom-4 left-4 right-4 bg-[#0f172a]/90 backdrop-blur-md p-3 rounded-lg border border-slate-700/50 z-20 transform translate-y-2 opacity-90 group-hover/image:translate-y-0 group-hover/image:opacity-100 transition-all duration-500 shadow-xl">
                   <div className="flex justify-between items-center border-b border-slate-700/50 pb-2 mb-2">
                     <span className="text-[10px] font-mono text-slate-400">
@@ -237,7 +239,7 @@ const Hero: React.FC = () => {
                   </div>
                   <div className="flex gap-2 text-[10px] font-mono">
                     <span className="text-pink-400">class</span>
-                    <span className="text-blue-400">Developer</span>:
+                    <span className="text-blue-400">Dev</span>:
                     <span className="text-white">skills</span> =
                     <span className="text-yellow-400">['Python', 'React']</span>
                   </div>
@@ -245,32 +247,20 @@ const Hero: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. Enhanced Floating Badges with Tooltips */}
+            {/* Floating Badges */}
             <div className="absolute -top-6 -right-6 group/icon z-30 animate-bounce-slow">
               <div className="w-14 h-14 bg-[#0f172a] rounded-xl border border-slate-700 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover/icon:border-yellow-400/50 transition-colors">
                 <Terminal className="text-yellow-400" size={24} />
               </div>
-              {/* Tooltip */}
-              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-[10px] text-white rounded opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap border border-slate-700">
-                Python Expert
-              </div>
             </div>
-
             <div className="absolute top-1/2 -left-8 group/icon z-30 animate-bounce-slow delay-1000">
               <div className="w-12 h-12 bg-[#0f172a] rounded-xl border border-slate-700 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover/icon:border-blue-400/50 transition-colors">
                 <Code2 className="text-blue-400" size={22} />
               </div>
-              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-[10px] text-white rounded opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap border border-slate-700">
-                ReactJS
-              </div>
             </div>
-
             <div className="absolute -bottom-6 right-8 group/icon z-30 animate-bounce-slow delay-500">
               <div className="w-12 h-12 bg-[#0f172a] rounded-xl border border-slate-700 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover/icon:border-green-400/50 transition-colors">
                 <Database className="text-green-400" size={18} />
-              </div>
-              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-[10px] text-white rounded opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap border border-slate-700">
-                Backend
               </div>
             </div>
           </div>

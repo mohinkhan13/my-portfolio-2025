@@ -1,19 +1,26 @@
-// src/components/AdminDashboard.tsx
-
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useContent } from '../context/ContentContext';
 import { useNavigate } from 'react-router-dom';
 import { Save, RefreshCw, X, ChevronRight, Lock, Eye, EyeOff, User, Terminal, Briefcase, Layout, Phone, Settings, Cpu } from 'lucide-react';
 import { compressImage } from '../src/utils/compressor'; 
 
-// Import Sub-Components
-import AdminHero from './admin/AdminHero';
-import AdminAbout from './admin/AdminAbout';
-import AdminSkills from './admin/AdminSkills'; // <-- New Import
-import AdminExperience from './admin/AdminExperience';
-import AdminProjects from './admin/AdminProjects';
-import AdminContact from './admin/AdminContact';
-import AdminSettings from './admin/AdminSettings';
+// Dynamic Imports for Admin Tabs
+const AdminHero = lazy(() => import('./admin/AdminHero'));
+const AdminAbout = lazy(() => import('./admin/AdminAbout'));
+const AdminSkills = lazy(() => import('./admin/AdminSkills'));
+const AdminExperience = lazy(() => import('./admin/AdminExperience'));
+const AdminProjects = lazy(() => import('./admin/AdminProjects'));
+const AdminContact = lazy(() => import('./admin/AdminContact'));
+const AdminSettings = lazy(() => import('./admin/AdminSettings'));
+
+const LoadingTab = () => (
+  <div className="w-full h-64 flex items-center justify-center text-slate-500">
+    <div className="flex flex-col items-center gap-2">
+      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"/>
+      <span className="text-xs font-mono">Loading module...</span>
+    </div>
+  </div>
+);
 
 const AdminDashboard: React.FC = () => {
   const { content, updateContent, resetContent } = useContent();
@@ -29,14 +36,12 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('hero');
   const [heroData, setHeroData] = useState(content.hero || {});
   const [aboutData, setAboutData] = useState(content.about || {});
-  const [skillsData, setSkillsData] = useState(content.skills || []); // Dedicated State
+  const [skillsData, setSkillsData] = useState(content.skills || []);
   const [experienceData, setExperienceData] = useState(content.experience || []);
   const [projectsData, setProjectsData] = useState(content.projects || []);
   const [contactData, setContactData] = useState(content.contact || {});
   const [socialData, setSocialData] = useState(content.social || []);
   const [uploading, setUploading] = useState(false);
-
-  // --- LOGIC ---
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +90,7 @@ const AdminDashboard: React.FC = () => {
   const handleSave = () => {
     updateContent('hero', heroData);
     updateContent('about', aboutData);
-    updateContent('skills', skillsData); // Saving Skills independently
+    updateContent('skills', skillsData);
     updateContent('experience', experienceData);
     updateContent('projects', projectsData);
     updateContent('contact', contactData);
@@ -95,10 +100,8 @@ const AdminDashboard: React.FC = () => {
 
   const handlePasswordChange = (newPass: string) => {
     updateContent('settings', { password: newPass });
-    alert("Password updated! Remember it for next login.");
+    alert("Password updated!");
   };
-
-  // --- RENDER ---
 
   if (!isAuthenticated) {
     return (
@@ -116,11 +119,10 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // UPDATED TABS LIST
   const tabs = [
     { id: 'hero', label: 'Hero', icon: User },
     { id: 'about', label: 'About', icon: Terminal },
-    { id: 'skills', label: 'Skills', icon: Cpu }, // <-- Added Skills Tab
+    { id: 'skills', label: 'Skills', icon: Cpu },
     { id: 'experience', label: 'Experience', icon: Briefcase },
     { id: 'projects', label: 'Projects', icon: Layout },
     { id: 'contact', label: 'Contact', icon: Phone },
@@ -148,16 +150,18 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* CONTENT AREA */}
+        {/* CONTENT AREA WITH SUSPENSE */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#0a1120]">
           <div className="max-w-4xl mx-auto pb-20">
-            {activeTab === 'hero' && <AdminHero data={heroData} setData={setHeroData} socialData={socialData} setSocialData={setSocialData} onImageUpload={handleHeroUpload} uploading={uploading} />}
-            {activeTab === 'about' && <AdminAbout aboutData={aboutData} setAboutData={setAboutData} skillsData={[]} setSkillsData={() => {}} />} {/* Removed skills from About */}
-            {activeTab === 'skills' && <AdminSkills data={skillsData} setData={setSkillsData} />} {/* <-- NEW */}
-            {activeTab === 'experience' && <AdminExperience data={experienceData} setData={setExperienceData} />}
-            {activeTab === 'projects' && <AdminProjects data={projectsData} setData={setProjectsData} onImageUpload={handleProjectUpload} />}
-            {activeTab === 'contact' && <AdminContact data={contactData} setData={setContactData} />}
-            {activeTab === 'settings' && <AdminSettings onPasswordChange={handlePasswordChange} />}
+            <Suspense fallback={<LoadingTab />}>
+              {activeTab === 'hero' && <AdminHero data={heroData} setData={setHeroData} socialData={socialData} setSocialData={setSocialData} onImageUpload={handleHeroUpload} uploading={uploading} />}
+              {activeTab === 'about' && <AdminAbout aboutData={aboutData} setAboutData={setAboutData} skillsData={[]} setSkillsData={() => {}} />}
+              {activeTab === 'skills' && <AdminSkills data={skillsData} setData={setSkillsData} />}
+              {activeTab === 'experience' && <AdminExperience data={experienceData} setData={setExperienceData} />}
+              {activeTab === 'projects' && <AdminProjects data={projectsData} setData={setProjectsData} onImageUpload={handleProjectUpload} />}
+              {activeTab === 'contact' && <AdminContact data={contactData} setData={setContactData} />}
+              {activeTab === 'settings' && <AdminSettings onPasswordChange={handlePasswordChange} />}
+            </Suspense>
           </div>
         </div>
       </div>
