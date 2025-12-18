@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       // --- NEW: PERFORMANCE OPTIMIZATION ---
       build: {
         // 1. Minification (Size kam karega)
-        minify: 'terser', 
+        // minify: 'terser', 
         cssCodeSplit: true,
         rollupOptions: {
           output: {
